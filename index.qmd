@@ -1,11 +1,33 @@
 ---
-title: "evensoke.github.io"
+title: "Kasper Evenson" 
+image: bondi.jpg 
+about: 
+  template: jolla 
+  image-shape: rounded 
+  image-width: 35em
+  links: 
+    - text: LinkedIn 
+      href: https://www.linkedin.com/in/kasper-evenson-7112682bb
+    - text: GitHub 
+      href: https://github.com/evensoke
+    - text: Email 
+      href: mailto:evensoke@colostate.edu
 ---
 
-This is a Quarto website.
+## ABOUT ME
 
-To learn more about Quarto websites visit <https://quarto.org/docs/websites>.
+I am a hardworking GIS specialist with proven problem solving and time management skills in fast-paced environments. I am adept in using ERSI products in conjunction with coding languages to explore, clean, and georeference data for a variety of project types. I always strive to meet situational needs, drive satisfaction, and promote long-term loyalty through exceptional relationship-building skills.
 
-```{r}
-1 + 1
-```
+## EDUCATION
+
+Colorado State University - BS in Ecosystem science and Sustainability (May 2026)
+
+## WORK EXPERIENCE
+
+CSU Geospatial Centroid, Fort Collins, CO - Intern Level 1 (September 2025 - Current)
+
+CSU ROSSyndicate, Fort Collins, CO - Water Database Specialist (June 2024 - January 2025)
+
+Larimer County Department of Natural Resources, Fort Collins, CO - Stewardship Outreach Educator (March 2024 - December 2025)
+
+CSU Biology Department, Fort Collins, CO - Learning Assistant (September 2023 - December 2023)

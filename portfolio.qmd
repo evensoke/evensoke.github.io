@@ -1,0 +1,111 @@
+---
+title: "Portfolio"
+---
+
+```{r, include = FALSE, warning = FALSE}
+library(tidyverse) 
+library(palmerpenguins)
+library(sf)
+library(terra)
+library(tmap)
+library(rmarkdown)
+library(tigris)
+library(rgbif)
+library(soilDB)
+library(plotly)
+library(mapview)
+library(leaflet)
+library(elevatr)
+
+tmap_mode("view")
+id_counties <- counties(state = "ID")
+```
+
+## ESS 523A Geospatial Projects
+
+### Creating an interactive map
+
+One of the projects we were tasked with was to create an interactive map based on data that was given to us, in this case the elevation of each county in a state of our choice.
+
+```{r, echo = FALSE, warning = FALSE}
+id_elevation <- get_elev_raster(id_counties, z = 7)
+id_elev_terra <- rast(id_elevation)
+id_elev_cropped <- crop(id_elev_terra, id_counties)
+
+tm_shape(id_elev_cropped)+
+  tm_raster(col.scale = tm_scale_continuous(),
+            col.legend = tm_legend("Elevation (m)")) +
+  tm_shape(id_counties) +
+    tm_polygons(fill = NULL)
+```
+
+### Data wrangling to create a personalized map
+
+Building off of that assignment, we were then tasked with finding two datasets on our own and mapping them together in a way that answers and interesting question. After looking through ScienceBase, IRMA, and Data.gov, I decided on combining oil well and airport geodata to answer the question, "How far are oil fields from the nearest airport in each Utah county?"
+
+To answer this question, I first had to prepare my data and clean up the metadata:
+
+```{r, warning = FALSE}
+#Utah extent
+ut_counties <- counties(state = "UT")
+
+#Oil well production shapefile
+wellStatus_sf <- read_sf("data/cells.shp")
+wellFields <- st_union(wellStatus_sf) %>%
+  st_make_valid()
+wellFields_prj <- st_transform(wellFields, st_crs(ut_counties))
+wellFields_crop <- st_intersection(wellFields_prj, ut_counties)
+wellFields_centroid <- st_centroid(wellFields_crop)
+wellFields_point <- st_sf(geometry = wellFields_centroid)
+
+
+#Aviation facilities shapefile
+aviation_sf <- read_sf("data/Aviation_Facilities.shp") %>%
+  filter(STATE_CODE == "UT")
+aviation_prj <- st_transform(aviation_sf, st_crs(ut_counties))
+
+#CRS projection check
+st_crs(wellFields_point) == st_crs(aviation_prj) #True
+
+#Distance calculation
+wellFields_point$nearest_airport <- st_nearest_feature(wellFields_point, aviation_prj)
+wellFields_point$airport_dist_m <-
+  st_distance(wellFields_point, aviation_prj[wellFields_point$nearest_airport, ], by_element = TRUE) %>%
+  as.numeric(wellFields_point$airport_dist_m)
+
+#Join ut_counties to aviation_prj
+aviation_prj$COUNTY_NAM <- tolower(aviation_prj$COUNTY_NAM)
+ut_counties$NAME <- tolower(ut_counties$NAME)
+ut_counties <- rename(ut_counties, COUNTY_NAM = "NAME")
+
+county_aviation <- st_join(ut_counties, aviation_prj, join = st_intersects,, left = TRUE) %>%
+  group_by(COUNTY_NAM.x) %>%
+  summarize(airports = n())
+```
+
+One of the most difficult parts of this process was that I thought the oil well data was a points feature, and it took me many failed attempts to realize it was actually full of small polygons. To remedy this, I combined each congruent polygon into one large geometry, and then used the centroid of this "oil well field" to create a much smaller, more manageable point feature.
+
+Then, I mapped distance to airport vs number of airports in each county:
+
+```{r, echo = FALSE, warning = FALSE}
+tm_shape(county_aviation) +
+  tm_polygons(fill = "airports",
+              fill.scale = tm_scale_intervals(n = 5, values = "brewer.BuPu"),
+              fill.legend = tm_legend(title = "Number of airports"),
+              col = "black") +
+tm_shape(wellFields_point) +
+  tm_bubbles(size = "airport_dist_m",
+             size.legend = tm_legend(title = "Distance from airport (m)"),
+             fill = "black",
+             fill_alpha = 0.6) +
+  tm_layout(frame = FALSE,
+            component.autoscale = FALSE,
+            title.size = 0.7, 
+            legend.title.size = 0.6, 
+            legend.text.size = 0.4,
+            legend.symbol.size = 0.6) +
+  tm_compass(position = c("right", "top"), text.size = 0.6) +
+  tm_scalebar(position = c("left", "top"), text.size = 0.3) +
+  tm_credits("Source: Kasper Evenson, ESS 523A. Data from USDOT BTS and USGS.", position = c("right", "bottom"), frame = FALSE, size = 0.3) +
+  tm_title("Distance of oil fields to airports vs Number of airports in Utah counties", fontface = "bold", position = tm_pos_out("center", "top"))
+```

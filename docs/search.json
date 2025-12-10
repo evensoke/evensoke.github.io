@@ -1,0 +1,51 @@
+[
+  {
+    "objectID": "portfolio.html",
+    "href": "portfolio.html",
+    "title": "Portfolio",
+    "section": "",
+    "text": "One of the projects we were tasked with was to create an interactive map based on data that was given to us, in this case the elevation of each county in a state of our choice.\n\n\nMosaicing & Projecting\n\n\nNote: Elevation units are in meters.\n\n\n\n\n\n\n\n\n\n\nBuilding off of that assignment, we were then tasked with finding two datasets on our own and mapping them together in a way that answers and interesting question. After looking through ScienceBase, IRMA, and Data.gov, I decided on combining oil well and airport geodata to answer the question, “How far are oil fields from the nearest airport in each Utah county?”\nTo answer this question, I first had to prepare my data and clean up the metadata:\n\n#Utah extent\nut_counties &lt;- counties(state = \"UT\")\n\nRetrieving data for the year 2024\n\n#Oil well production shapefile\nwellStatus_sf &lt;- read_sf(\"data/cells.shp\")\nwellFields &lt;- st_union(wellStatus_sf) %&gt;%\n  st_make_valid()\nwellFields_prj &lt;- st_transform(wellFields, st_crs(ut_counties))\nwellFields_crop &lt;- st_intersection(wellFields_prj, ut_counties)\nwellFields_centroid &lt;- st_centroid(wellFields_crop)\nwellFields_point &lt;- st_sf(geometry = wellFields_centroid)\n\n\n#Aviation facilities shapefile\naviation_sf &lt;- read_sf(\"data/Aviation_Facilities.shp\") %&gt;%\n  filter(STATE_CODE == \"UT\")\naviation_prj &lt;- st_transform(aviation_sf, st_crs(ut_counties))\n\n#CRS projection check\nst_crs(wellFields_point) == st_crs(aviation_prj) #True\n\n[1] TRUE\n\n#Distance calculation\nwellFields_point$nearest_airport &lt;- st_nearest_feature(wellFields_point, aviation_prj)\nwellFields_point$airport_dist_m &lt;-\n  st_distance(wellFields_point, aviation_prj[wellFields_point$nearest_airport, ], by_element = TRUE) %&gt;%\n  as.numeric(wellFields_point$airport_dist_m)\n\n#Join ut_counties to aviation_prj\naviation_prj$COUNTY_NAM &lt;- tolower(aviation_prj$COUNTY_NAM)\nut_counties$NAME &lt;- tolower(ut_counties$NAME)\nut_counties &lt;- rename(ut_counties, COUNTY_NAM = \"NAME\")\n\ncounty_aviation &lt;- st_join(ut_counties, aviation_prj, join = st_intersects,, left = TRUE) %&gt;%\n  group_by(COUNTY_NAM.x) %&gt;%\n  summarize(airports = n())\n\nOne of the most difficult parts of this process was that I thought the oil well data was a points feature, and it took me many failed attempts to realize it was actually full of small polygons. To remedy this, I combined each congruent polygon into one large geometry, and then used the centroid of this “oil well field” to create a much smaller, more manageable point feature.\nThen, I mapped distance to airport vs number of airports in each county:\n\n\n[cols4all] color palettes: use palettes from the R package cols4all. Run\n`cols4all::c4a_gui()` to explore them. The old palette name \"brewer.BuPu\" is\nnamed \"bu_pu\" (in long format \"brewer.bu_pu\")"
+  },
+  {
+    "objectID": "portfolio.html#ess-523a-geospatial-projects",
+    "href": "portfolio.html#ess-523a-geospatial-projects",
+    "title": "Portfolio",
+    "section": "",
+    "text": "One of the projects we were tasked with was to create an interactive map based on data that was given to us, in this case the elevation of each county in a state of our choice.\n\n\nMosaicing & Projecting\n\n\nNote: Elevation units are in meters.\n\n\n\n\n\n\n\n\n\n\nBuilding off of that assignment, we were then tasked with finding two datasets on our own and mapping them together in a way that answers and interesting question. After looking through ScienceBase, IRMA, and Data.gov, I decided on combining oil well and airport geodata to answer the question, “How far are oil fields from the nearest airport in each Utah county?”\nTo answer this question, I first had to prepare my data and clean up the metadata:\n\n#Utah extent\nut_counties &lt;- counties(state = \"UT\")\n\nRetrieving data for the year 2024\n\n#Oil well production shapefile\nwellStatus_sf &lt;- read_sf(\"data/cells.shp\")\nwellFields &lt;- st_union(wellStatus_sf) %&gt;%\n  st_make_valid()\nwellFields_prj &lt;- st_transform(wellFields, st_crs(ut_counties))\nwellFields_crop &lt;- st_intersection(wellFields_prj, ut_counties)\nwellFields_centroid &lt;- st_centroid(wellFields_crop)\nwellFields_point &lt;- st_sf(geometry = wellFields_centroid)\n\n\n#Aviation facilities shapefile\naviation_sf &lt;- read_sf(\"data/Aviation_Facilities.shp\") %&gt;%\n  filter(STATE_CODE == \"UT\")\naviation_prj &lt;- st_transform(aviation_sf, st_crs(ut_counties))\n\n#CRS projection check\nst_crs(wellFields_point) == st_crs(aviation_prj) #True\n\n[1] TRUE\n\n#Distance calculation\nwellFields_point$nearest_airport &lt;- st_nearest_feature(wellFields_point, aviation_prj)\nwellFields_point$airport_dist_m &lt;-\n  st_distance(wellFields_point, aviation_prj[wellFields_point$nearest_airport, ], by_element = TRUE) %&gt;%\n  as.numeric(wellFields_point$airport_dist_m)\n\n#Join ut_counties to aviation_prj\naviation_prj$COUNTY_NAM &lt;- tolower(aviation_prj$COUNTY_NAM)\nut_counties$NAME &lt;- tolower(ut_counties$NAME)\nut_counties &lt;- rename(ut_counties, COUNTY_NAM = \"NAME\")\n\ncounty_aviation &lt;- st_join(ut_counties, aviation_prj, join = st_intersects,, left = TRUE) %&gt;%\n  group_by(COUNTY_NAM.x) %&gt;%\n  summarize(airports = n())\n\nOne of the most difficult parts of this process was that I thought the oil well data was a points feature, and it took me many failed attempts to realize it was actually full of small polygons. To remedy this, I combined each congruent polygon into one large geometry, and then used the centroid of this “oil well field” to create a much smaller, more manageable point feature.\nThen, I mapped distance to airport vs number of airports in each county:\n\n\n[cols4all] color palettes: use palettes from the R package cols4all. Run\n`cols4all::c4a_gui()` to explore them. The old palette name \"brewer.BuPu\" is\nnamed \"bu_pu\" (in long format \"brewer.bu_pu\")"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "This personal website is used to host my portfolio of past geospatial projects through classwork and jobs. Through my experience, I have learned to use R Studio and ArcGIS Pro in order to find, process, and synthesize geospatial data and databases. I have also had the ability to create my own geospatial database, hosted in excel, that was used to support National Park Service and Grad Student work.\nThe Portfolio tab of this website may take time to load since one of the datasets used was large and unwieldy. More information on how I solved this issue can be found in the “Data wrangling to create a personalized map” project description."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Kasper Evenson",
+    "section": "",
+    "text": "I am a hardworking GIS specialist with proven problem solving and time management skills in fast-paced environments. I am adept in using ERSI products in conjunction with coding languages to explore, clean, and georeference data for a variety of project types. I always strive to meet situational needs, drive satisfaction, and promote long-term loyalty through exceptional relationship-building skills."
+  },
+  {
+    "objectID": "index.html#about-me",
+    "href": "index.html#about-me",
+    "title": "Kasper Evenson",
+    "section": "",
+    "text": "I am a hardworking GIS specialist with proven problem solving and time management skills in fast-paced environments. I am adept in using ERSI products in conjunction with coding languages to explore, clean, and georeference data for a variety of project types. I always strive to meet situational needs, drive satisfaction, and promote long-term loyalty through exceptional relationship-building skills."
+  },
+  {
+    "objectID": "index.html#education",
+    "href": "index.html#education",
+    "title": "Kasper Evenson",
+    "section": "EDUCATION",
+    "text": "EDUCATION\nColorado State University - BS in Ecosystem science and Sustainability (May 2026)"
+  },
+  {
+    "objectID": "index.html#work-experience",
+    "href": "index.html#work-experience",
+    "title": "Kasper Evenson",
+    "section": "WORK EXPERIENCE",
+    "text": "WORK EXPERIENCE\nCSU Geospatial Centroid, Fort Collins, CO - Intern Level 1 (September 2025 - Current)\nCSU ROSSyndicate, Fort Collins, CO - Water Database Specialist (June 2024 - January 2025)\nLarimer County Department of Natural Resources, Fort Collins, CO - Stewardship Outreach Educator (March 2024 - December 2025)\nCSU Biology Department, Fort Collins, CO - Learning Assistant (September 2023 - December 2023)"
+  }
+]

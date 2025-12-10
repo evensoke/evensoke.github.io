@@ -1,5 +1,6 @@
 project:
   type: website
+  output-dir: docs
 
 website:
   title: "evensoke.github.io"
@@ -8,11 +9,12 @@ website:
       - href: index.qmd
         text: Home
       - about.qmd
+      - portfolio.qmd
 
 format:
   html:
     theme:
-      - cosmo
+      - solar
       - brand
     css: styles.css
     toc: true
