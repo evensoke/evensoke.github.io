@@ -3,7 +3,7 @@ project:
   output-dir: docs
 
 website:
-  title: "evensoke.github.io"
+  title: "Kasper Evenson"
   navbar:
     left:
       - href: index.qmd
